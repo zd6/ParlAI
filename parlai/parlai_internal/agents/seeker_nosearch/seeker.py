@@ -700,48 +700,12 @@ class SeekerAgent(ModularAgentMixin):
         :return batch_reply:
             batch_reply: batch reply from KRM
         """
-        # print("Input: observatons: ", observations)
-        # print("Input: krm_observations", knowledge_agent_observations)
-
         old_min_length = self.knowledge_agent.beam_min_length
         batch_reply_krm = [{} for _ in range(len(observations))]
 
-        # if search_indices and self.min_knowledge_length_when_search > 0:
-        #     # Need to handle min length for searching
-        #     self.knowledge_agent.beam_min_length = self.min_knowledge_length_when_search
-        #     search_replies = self.knowledge_agent.batch_act(
-        #         [
-        #             o
-        #             for i, o in enumerate(knowledge_agent_observations)
-        #             if i in search_indices
-        #         ]
-        #     )
-        #     self.knowledge_agent.beam_min_length = old_min_length
-        #     non_search_replies = (
-        #         self.knowledge_agent.batch_act(
-        #             [
-        #                 o
-        #                 for i, o in enumerate(knowledge_agent_observations)
-        #                 if i not in search_indices
-        #             ]
-        #         )
-        #         if len(search_indices) != len(observations)
-        #         else []
-        #     )
-        #     search_offset = 0
-        #     no_search_offset = 0
-        #     for i in range(len(observations)):
-        #         if i in search_indices:
-        #             batch_reply_krm[i] = search_replies[search_offset]
-        #             search_offset += 1
-        #         else:
-        #             batch_reply_krm[i] = non_search_replies[no_search_offset]
-        #             no_search_offset += 1
-        # else:
         batch_reply_krm = self.knowledge_agent.batch_act(
             knowledge_agent_observations
         )
-        # print("Output: ", batch_reply_krm)
         self.knowledge_agent.beam_min_length = old_min_length
         return batch_reply_krm
 
@@ -778,15 +742,10 @@ class SeekerAgent(ModularAgentMixin):
                 'prefix',
                 obs.get('prefix', None)
             )
-            # drm_obs.force_set(
-            #     'temp_history',
-            #     f"\n{TOKEN_KNOWLEDGE} {batch_reply_krm[i].get('text', '')} {TOKEN_END_KNOWLEDGE}",
-            # )
             drm_obs.force_set(
                 'temp_history',
                 f"\n{TOKEN_KNOWLEDGE} {batch_reply_krm[i].get('chirpy_knowledge', '')} {TOKEN_END_KNOWLEDGE}",
             )
-            # print("set knowledge: ", batch_reply_krm[i].get('chirpy_knowledge', ''))
             drm_obs.force_set('skip_retrieval', True)
             if not self.dialogue_agent_clones[i].history.get_history_str():
                 drm_obs.force_set('text', full_text[i])
@@ -840,13 +799,8 @@ class SeekerAgent(ModularAgentMixin):
         # Second, generate search queries
         batch_reply_sqm = self.batch_act_sqm(observations, search_indices)
         # Third, generate the knowledge sentence
-        # batch_reply_krm = self.batch_act_krm(
-        #     observations, knowledge_agent_observations, search_indices
-        # )
-        # doc_list = list(batch_reply_krm)
         batch_reply_krm = [{"source":"None"} for _ in observations]
         if chirpy_payload is not None:
-            print(chirpy_payload)
             if len(chirpy_payload) > 0 and "chirpy_knowledge" in chirpy_payload[0]:
                 for i in range(len(batch_reply_krm)):
                     if chirpy_payload[i]["chirpy_knowledge"] != "":
